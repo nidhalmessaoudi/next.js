@@ -6,9 +6,10 @@ import type {
   ImageLoaderProps,
   ImageLoaderPropsWithConfig,
 } from './image-config'
+import { interopDefault } from '../../lib/interop-default'
 
-// @ts-ignore - This is replaced by webpack alias
-import defaultLoader from 'next/dist/shared/lib/image-loader'
+/// @ts-ignore - This is replaced by webpack alias
+// import defaultLoader from 'next/dist/shared/lib/image-loader'
 
 export interface StaticImageData {
   src: string
@@ -81,7 +82,7 @@ type ImageConfig = ImageConfigComplete & {
   allSizes: number[]
   output?: 'standalone' | 'export'
 }
-const configEnv = process.env.__NEXT_IMAGE_OPTS as any as ImageConfigComplete
+// const configEnv = process.env.__NEXT_IMAGE_OPTS as any as ImageConfigComplete
 
 export type ImageLoader = (p: ImageLoaderProps) => string
 
@@ -273,7 +274,7 @@ export function getImgProps(
 } {
   const { imgConf, showAltText, blurComplete } = _state || {}
   let config: ImageConfig
-  let c = imgConf || configEnv || imageConfigDefault
+  let c = imgConf || imageConfigDefault
   if ('allSizes' in c) {
     config = c as ImageConfig
   } else {
@@ -282,6 +283,15 @@ export function getImgProps(
     config = { ...c, allSizes, deviceSizes }
   }
 
+  let defaultLoaderMod
+  // When loader is not processed by webpack, access it from context
+  if (config.loaderFile) {
+    defaultLoaderMod = require('next/dist/shared/lib/custom-image-loader')
+  } else {
+    defaultLoaderMod = require('next/dist/shared/lib/image-loader')
+  }
+
+  const defaultLoader = interopDefault(defaultLoaderMod)
   let loader: ImageLoaderWithConfig = rest.loader || defaultLoader
 
   // Remove property so it's not spread on <img> element

@@ -67,6 +67,7 @@ import { AppBuildManifestPlugin } from './webpack/plugins/app-build-manifest-plu
 import { SubresourceIntegrityPlugin } from './webpack/plugins/subresource-integrity-plugin'
 import { NextFontManifestPlugin } from './webpack/plugins/next-font-manifest-plugin'
 import { getSupportedBrowsers } from './utils'
+import { NextImagePlugin } from './webpack/plugins/next-image-plugin'
 
 type ExcludesFalse = <T>(x: T | false) => x is T
 type ClientEntries = {
@@ -222,6 +223,12 @@ export function getDefineEnv({
   fetchCacheKeyPrefix?: string
   allowedRevalidateHeaderKeys?: string[]
 }) {
+  const imageLoaderFile = config?.images?.loaderFile
+    ? isClient
+      ? config?.images?.loaderFile
+      : 'next/dist/shared/lib/custom-image-loader' // path.join(distDir, 'server/custom-image-loader.js')
+    : 'next/dist/shared/lib/image-loader'
+
   return {
     // internal field to identify the plugin config
     __NEXT_DEFINE_ENV: 'true',
@@ -345,6 +352,8 @@ export function getDefineEnv({
       loader: config.images.loader,
       dangerouslyAllowSVG: config.images.dangerouslyAllowSVG,
       unoptimized: config?.images?.unoptimized,
+      // passing resolved loaderFile in dist build in image context
+      loaderFile: config?.images?.loaderFile,
       ...(dev
         ? {
             // pass domains in development to allow validating on the client
@@ -354,6 +363,7 @@ export function getDefineEnv({
           }
         : {}),
     }),
+    'process.env.__NEXT_IMAGE_LOADER_PATH': JSON.stringify(imageLoaderFile),
     'process.env.__NEXT_ROUTER_BASEPATH': JSON.stringify(config.basePath),
     'process.env.__NEXT_STRICT_NEXT_HEAD': JSON.stringify(
       config.experimental.strictNextHead
@@ -1123,10 +1133,12 @@ export default async function getBaseWebpackConfig(
 
       ...(config.images.loaderFile
         ? {
-            'next/dist/shared/lib/image-loader': config.images.loaderFile,
-            ...(isEdgeServer && {
-              'next/dist/esm/shared/lib/image-loader': config.images.loaderFile,
-            }),
+            // 'next/dist/shared/lib/image-loader': config.images.loaderFile,
+            'next/dist/shared/lib/custom-image-loader':
+              config.images.loaderFile,
+            // ...(isEdgeServer && {
+            //   'next/dist/esm/shared/lib/image-loader': config.images.loaderFile,
+            // }),
           }
         : undefined),
 
@@ -2275,6 +2287,9 @@ export default async function getBaseWebpackConfig(
       ].filter(Boolean),
     },
     plugins: [
+      isNodeServer &&
+        config?.images?.loaderFile &&
+        new NextImagePlugin({ loaderFile: config?.images?.loaderFile }),
       dev && isClient && new ReactRefreshWebpackPlugin(webpack),
       // Makes sure `Buffer` and `process` are polyfilled in client and flight bundles (same behavior as webpack 4)
       (isClient || isEdgeServer) &&

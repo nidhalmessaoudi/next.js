@@ -435,7 +435,10 @@ export default abstract class Server<ServerOptions extends Options = Options> {
       customServer: customServer === true ? true : undefined,
       ampOptimizerConfig: this.nextConfig.experimental.amp?.optimizer,
       basePath: this.nextConfig.basePath,
-      images: this.nextConfig.images,
+      images: {
+        ...this.nextConfig.images,
+        // loaderFile: require('path').join(this.distDir, 'server/custom-image-loader.js'),
+      },
       optimizeFonts: this.nextConfig.optimizeFonts as FontConfig,
       fontManifest:
         (this.nextConfig.optimizeFonts as FontConfig) && !dev
