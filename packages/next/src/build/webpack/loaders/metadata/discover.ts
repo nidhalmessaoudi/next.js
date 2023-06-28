@@ -7,6 +7,7 @@ import { stringify } from 'querystring'
 import { STATIC_METADATA_IMAGES } from '../../../../lib/metadata/is-metadata-route'
 import { WEBPACK_RESOURCE_QUERIES } from '../../../../lib/constants'
 import { MetadataResolver } from '../next-app-loader'
+import { imageMetadataExports } from '../next-metadata-image-loader'
 
 const METADATA_TYPE = 'metadata'
 
@@ -111,7 +112,7 @@ export async function createStaticMetadataFromRoute(
           }
         )}!${filepath}?${WEBPACK_RESOURCE_QUERIES.metadata}`
 
-        const imageModule = `(async (props) => (await import(/* webpackMode: "eager" */ ${JSON.stringify(
+        const imageModule = `(async (props) => (await import(${JSON.stringify(
           imageModuleImportSource
         )})).default(props))`
         hasStaticMetadataFiles = true

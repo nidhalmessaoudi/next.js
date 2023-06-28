@@ -1865,7 +1865,6 @@ export default async function getBaseWebpackConfig(
         'next-swc-loader',
         'next-client-pages-loader',
         'next-image-loader',
-        'next-metadata-image-loader',
         'next-style-loader',
         'next-flight-loader',
         'next-flight-client-entry-loader',
@@ -1882,6 +1881,7 @@ export default async function getBaseWebpackConfig(
         'next-route-loader',
         'next-font-loader',
         'next-invalid-import-error-loader',
+        'next-metadata-image-loader',
         'next-metadata-route-loader',
       ].reduce((alias, loader) => {
         // using multiple aliases to replace `resolveLoader.modules`
@@ -2273,9 +2273,15 @@ export default async function getBaseWebpackConfig(
           },
         },
         {
-          // Mark `image-response.js` as side-effects free to make sure we can
+          // Mark `next/server` entry and `image-response` as side-effects free to make sure we can
           // tree-shake it if not used.
-          test: /[\\/]next[\\/]dist[\\/](esm[\\/])?server[\\/]web[\\/]exports[\\/]image-response\.js/,
+          test: /next[\\/]dist[\\/](esm[\\/])?server[\\/]web[\\/](exports|spec-extension)[\\/]image-response/,
+          sideEffects: false,
+        },
+        {
+          // Mark metadata routes metadata module as side-effects free to make sure we can tree-shake out default imports
+          // and only keep the named exports we use.
+          resourceQuery: new RegExp(WEBPACK_RESOURCE_QUERIES.metadataImageMeta),
           sideEffects: false,
         },
       ].filter(Boolean),

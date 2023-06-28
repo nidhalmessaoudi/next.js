@@ -23,6 +23,14 @@ interface Options {
   basePath: string
 }
 
+// Only keep metadata required exports, filtering out other exports such as `default` or `runtime`
+export const imageMetadataExports = [
+  'size',
+  'alt',
+  'contentType',
+  'generateImageMetadata',
+]
+
 async function nextMetadataImageLoader(this: any, content: Buffer) {
   const options: Options = this.getOptions()
   const { type, segment, pageExtensions, basePath } = options
@@ -76,35 +84,36 @@ async function nextMetadataImageLoader(this: any, content: Buffer) {
               'HarmonyExportSpecifierDependency',
             ].includes(dep.constructor.name) &&
             'name' in dep &&
-            dep.name !== 'default'
+            imageMetadataExports.includes(dep.name as string)
           )
         })
         .map((dep: any) => {
           return dep.name
         }) || []
-    // re-export and spread as `exportedImageData` to avoid non-exported error
+
+    // This is an arbitrary resource query to ensure it's a new request, instead
+    // of sharing the same module with next-metadata-route-loader.
+    // Since here we only need export fields such as `size`, `alt` and
+    // `generateImageMetadata`, avoid sharing the same module can make this entry
+    // smaller.
+    const imageModulePath =
+      resourcePath + '?' + WEBPACK_RESOURCE_QUERIES.metadataImageMeta
+
+    // Re-export and spread as `exportedImageData` to avoid non-exported error.
     return `\
+    import { fillMetadataSegment } from 'next/dist/lib/metadata/get-metadata-route'
     import {
       ${exportedFieldsExcludingDefault
         .map((field) => `${field} as _${field}`)
         .join(',')}
-    } from ${JSON.stringify(
-      // This is an arbitrary resource query to ensure it's a new request, instead
-      // of sharing the same module with next-metadata-route-loader.
-      // Since here we only need export fields such as `size`, `alt` and
-      // `generateImageMetadata`, avoid sharing the same module can make this entry
-      // smaller.
-      resourcePath + '?' + WEBPACK_RESOURCE_QUERIES.metadataImageMeta
-    )}
-    import { fillMetadataSegment } from 'next/dist/lib/metadata/get-metadata-route'
-
-    const imageModule = {
-      ${exportedFieldsExcludingDefault
-        .map((field) => `${field}: _${field}`)
-        .join(',')}
-    }
+    } from ${JSON.stringify(imageModulePath)}
 
     export default async function (props) {
+      const imageModule = {
+        ${exportedFieldsExcludingDefault
+          .map((field) => `${field}: _${field}`)
+          .join(',')}
+      }
       const { __metadata_id__: _, ...params } = props.params
       const imageUrl = fillMetadataSegment(${JSON.stringify(
         pathnamePrefix
