@@ -142,7 +142,6 @@ async fn next_client_transition(
         project_path,
         server_root,
         client_compile_time_info.environment(),
-        ty,
     );
     let client_module_options_context = get_client_module_options_context(
         project_path,
@@ -282,7 +281,7 @@ fn next_edge_route_transition(
         project_path,
         output_path.join("edge"),
         output_path.join("edge/chunks"),
-        get_client_assets_path(server_root, Value::new(ClientContextType::App { app_dir })),
+        get_client_assets_path(server_root),
         edge_compile_time_info.environment(),
     )
     .reference_chunk_source_maps(should_debug("app_source"))
@@ -326,7 +325,7 @@ fn next_edge_page_transition(
         project_path,
         output_path.join("edge-pages"),
         output_path.join("edge-pages/chunks"),
-        get_client_assets_path(server_root, Value::new(ClientContextType::App { app_dir })),
+        get_client_assets_path(server_root),
         edge_compile_time_info.environment(),
     )
     .layer("ssr")
@@ -1114,7 +1113,7 @@ import {}, {{ chunks as {} }} from "COMPONENT_{}";
             project_path,
             intermediate_output_path,
             intermediate_output_path.join("chunks"),
-            get_client_assets_path(server_root, Value::new(ClientContextType::App { app_dir })),
+            get_client_assets_path(server_root),
             context.compile_time_info().environment(),
         )
         .layer("ssr")
@@ -1209,12 +1208,7 @@ impl AppRouteVc {
             this.project_path,
             this.intermediate_output_path,
             this.intermediate_output_path.join("chunks"),
-            get_client_assets_path(
-                this.server_root,
-                Value::new(ClientContextType::App {
-                    app_dir: this.app_dir,
-                }),
-            ),
+            get_client_assets_path(this.server_root),
             this.context.compile_time_info().environment(),
         )
         .layer("ssr")
